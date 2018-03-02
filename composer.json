@@ -1,0 +1,12 @@
+{
+    "name": "batmahir/oauth2-api",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Bathulah Mahir",
+            "email": "bathulahmahir@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
