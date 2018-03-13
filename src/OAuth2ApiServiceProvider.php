@@ -13,7 +13,7 @@ class OAuth2ApiServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        $this->loadMigrationsFrom(__DIR__.'Oauth2Migration.php');
     }
 
     /**
