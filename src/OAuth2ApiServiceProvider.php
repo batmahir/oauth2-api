@@ -32,18 +32,18 @@ class OAuth2ApiServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->register();
+       // $this->registerToken();
     }
 
     public function registerToken()
     {
-        $config2  = config('auth.guards.api');
-        $data = new \Batmahir\OAuth2\Token(
-            $this->app->make(ResourceServer::class),
-            Auth::createUserProvider($config2['provider']),
-            $this->app->make(TokenRepository::class),
-            $this->app->make(ClientRepository::class),
-            $this->app->make('encrypter')
-        );
+//        $config2  = config('auth.guards.api');
+//        $data = new \Batmahir\OAuth2\Token(
+//            $this->app->make(ResourceServer::class),
+//            Auth::createUserProvider($config2['provider']),
+//            $this->app->make(TokenRepository::class),
+//            $this->app->make(ClientRepository::class),
+//            $this->app->make('encrypter')
+//        );
     }
 }

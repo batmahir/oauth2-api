@@ -41,19 +41,51 @@ class OAuth2 extends AccessTokenController
     public function directAuthorize(ServerRequestInterface $request)
     {
         $this->checkUser($request->getParsedBody()['username'],$request->getParsedBody()['password']);
-        $first_time_authorized = $this->checkClient($request);
+        $at_least_one_authorize = $this->checkClient($request); // this will check whether the user get authorize before or not
+        $request2 = \request();
 
-        //if($first_time_authorized == false)
-        //{
+        if(!isset($at_least_one_authorize)) // create the token for the first time authenticate
+        {
             $data =  $this->withErrorHandling(function () use ($request) {
                 return $this->convertResponse(
                     $this->server->respondToAccessTokenRequest($request, new Psr7Response)
                 );
             });
-            dd($data->content());
-        //}
 
+            $response = \json_decode($data->content());
+            $request2->headers->set('authorization', $response->token_type.' '.$response->access_token);
 
+            $token = Token::createTokenGuardObject()->validateToken($request2);
+            $oauth_access_token_obj = OAuthAccessToken::find($token->oauth_access_token_id);
+            $oauth_access_token_obj->access_token = $response->access_token;
+            $oauth_access_token_obj->refresh_token = $response->refresh_token;
+            $oauth_access_token_obj->token_type = $response->token_type;
+            $oauth_access_token_obj->expires_in = $response->expires_in;
+            $oauth_access_token_obj->save();
+
+            $response =
+                [
+                    'token_type' => $response->token_type,
+                    'expires_in' => $response->expires_in ,
+                    'access_token' => $response->access_token,
+                    'refresh_token' => $response->refresh_token,
+                    'first_time_authenticate' => true
+                ];
+
+            return \response()->json($response,200);
+
+        }
+
+        $response =
+        [
+            'token_type' => $at_least_one_authorize->token_type,
+            'expires_in' => $at_least_one_authorize->expires_in ,
+            'access_token' => $at_least_one_authorize->access_token,
+            'refresh_token' => $at_least_one_authorize->refresh_token,
+            'first_time_authenticate' => false
+        ];
+
+        return \response()->json($response,200);
 
     }
 
@@ -73,7 +105,7 @@ class OAuth2 extends AccessTokenController
         $this->authenticated_user_email = $user_collection->email;
         $this->authenticated_user_id = $user_collection->id;
         $this->authenticated_user_name = $user_collection->name;
-        dd('here');
+
         return true;
     }
 
@@ -87,9 +119,6 @@ class OAuth2 extends AccessTokenController
             ->where('users.id','=',$this->authenticated_user_id)
             ->first();
 
-        if(!isset($check_access_token ))
-            return false;
-
-        return true;
+        return $check_access_token;
     }
 }

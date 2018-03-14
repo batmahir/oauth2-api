@@ -13,6 +13,9 @@ use League\OAuth2\Server\Exception\OAuthServerException;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\Facades\Auth;
+use Lcobucci\JWT\Parser;
+use Lcobucci\JWT\Signer\Rsa\Sha256;
+use Lcobucci\JWT\ValidationData;
 
 class Token extends TokenGuard
 {
@@ -21,7 +24,7 @@ class Token extends TokenGuard
         parent::__construct($server, $provider, $tokens, $clients, $encrypter);
     }
 
-    public function createTokenGuarObject()
+    public static function createTokenGuardObject()
     {
         $authGuardApiConfig = config('auth.guards.api');
         $tokenGuardObj
