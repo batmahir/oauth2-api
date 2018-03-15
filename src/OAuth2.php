@@ -40,7 +40,13 @@ class OAuth2 extends AccessTokenController
 
     public function directAuthorize(ServerRequestInterface $request)
     {
-        $this->checkUser($request->getParsedBody()['username'],$request->getParsedBody()['password']);
+        $checkUser = $this->checkUser($request->getParsedBody()['username'],$request->getParsedBody()['password']);
+
+        if($checkUser == false)
+        {
+            return \response()->json(['error' => 'These credentials do not match our records.'],401);
+        }
+
         $at_least_one_authorize = $this->checkClient($request); // this will check whether the user get authorize before or not
         $request2 = \request();
 
@@ -92,15 +98,14 @@ class OAuth2 extends AccessTokenController
     public function checkUser($email,$password)
     {
         $user_collection = User::where('email','=',$email)->first();
-        if(!isset($user_collection))
-            throw new \Exception('Unauthorized custom');
+        if(!isset($user_collection)) return false;
+
 
         $user_auth = \Illuminate\Foundation\Auth\User::find($user_collection->id);
 
         $auth = (new BcryptHasher)->check($password,$user_auth->getAuthPassword());
 
-        if($auth == false)
-            throw new \Exception('Unauthorized custom');
+        if($auth == false) return false;
 
         $this->authenticated_user_email = $user_collection->email;
         $this->authenticated_user_id = $user_collection->id;
