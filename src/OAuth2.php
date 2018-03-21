@@ -33,6 +33,10 @@ class OAuth2 extends AccessTokenController
         ]);
     }
 
+    public static function authorizedRoute()
+    {
+    }
+
     public function authorize_client($client_id , $client_secret)
     {
 
@@ -59,6 +63,10 @@ class OAuth2 extends AccessTokenController
             });
 
             $response = \json_decode($data->content());
+            if(isset($response->error))
+            {
+                return \response()->json($response,200);
+            }
             $request2->headers->set('authorization', $response->token_type.' '.$response->access_token);
 
             $token = Token::createTokenGuardObject()->validateToken($request2);
