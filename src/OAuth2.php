@@ -45,6 +45,7 @@ class OAuth2 extends AccessTokenController
     public function directAuthorize(ServerRequestInterface $request)
     {
         $checkUser = $this->checkUser($request->getParsedBody()['username'],$request->getParsedBody()['password']);
+        $first_time_authenticate = true;
 
         if($checkUser == false)
         {
@@ -54,15 +55,16 @@ class OAuth2 extends AccessTokenController
         $at_least_one_authorize = $this->checkClient($request); // this will check whether the user get authorize before or not
         $request2 = \request();
 
-        if(!isset($at_least_one_authorize)) // create the token for the first time authenticate
+        if(isset($at_least_one_authorize)) // create the token for the first time authenticate
         {
-            $data =  $this->withErrorHandling(function () use ($request) {
-                return $this->convertResponse(
-                    $this->server->respondToAccessTokenRequest($request, new Psr7Response)
-                );
-            });
+            $first_time_authenticate = false;
+            $at_least_one_authorize->delete(); // we will delete and create new one for access-token
+        }
+
+            $data =  $this->createNewAccessToken($request);
 
             $response = \json_decode($data->content());
+
             if(isset($response->error))
             {
                 return \response()->json($response,200);
@@ -83,24 +85,23 @@ class OAuth2 extends AccessTokenController
                     'expires_in' => $response->expires_in ,
                     'access_token' => $response->access_token,
                     'refresh_token' => $response->refresh_token,
-                    'first_time_authenticate' => true
+                    'first_time_authenticate' => $first_time_authenticate
                 ];
 
             return \response()->json($response,200);
 
-        }
+    }
 
-        $response =
-        [
-            'token_type' => $at_least_one_authorize->token_type,
-            'expires_in' => $at_least_one_authorize->expires_in ,
-            'access_token' => $at_least_one_authorize->access_token,
-            'refresh_token' => $at_least_one_authorize->refresh_token,
-            'first_time_authenticate' => false
-        ];
+    public function createNewAccessToken(ServerRequestInterface $request)
+    {
+        $token =
+        $this->withErrorHandling(function () use ($request) {
+            return $this->convertResponse(
+                $this->server->respondToAccessTokenRequest($request, new Psr7Response)
+            );
+        });
 
-        return \response()->json($response,200);
-
+        return $token;
     }
 
     public function checkUser($email,$password)
@@ -130,6 +131,7 @@ class OAuth2 extends AccessTokenController
             ->where('oauth_clients.id','=',$request->getParsedBody()['client_id'])
             ->where('oauth_clients.secret','=',$request->getParsedBody()['client_secret'])
             ->where('users.id','=',$this->authenticated_user_id)
+            ->selectRaw('oauth_access_tokens.*')
             ->first();
 
         return $check_access_token;
